@@ -1,0 +1,55 @@
+#include<cuda.h>
+#include<stdio.h>
+#include<time.h>
+#include<stdlib.h>
+#define N 1024
+
+__global__ void oddeven(int *a, int fl){
+ int ix = blockIdx.x * blockDim.x + threadIdx.x;
+ int tp;
+  if((ix >= N/2 - 1) && fl % 2 != 0) return;
+
+  if(fl % 2 == 0){
+    if(a[ix *2 ] > a[ix * 2 + 1]){
+      tp = a[ix * 2];
+      a[ix * 2] = a[ix *2 +1];
+      a[ix * 2 +1] = tp;   
+   }
+  }else { 
+    if(a[ix * 2 +1 ] > a[ix *2 + 2]){
+      tp = a[ix * 2 + 1];
+      a[ix * 2 + 1] = a[ix*2+2];
+      a[ix*2+2] = tp;
+    }
+  }
+}
+
+int main(){
+ int *a, *d, i;
+  int se = sizeof(int) * N;
+  srand((unsigned)time(NULL));
+  a = (int *)malloc(se);
+  cudaMalloc((void **)&d, se);
+
+ for(i=0;i<N;i++){
+    a[i] = rand()%N;
+  }
+
+ printf("\nNumbers before sorting: ");
+  for(i=0;i<N;i++){
+     printf("%d ", a[i]);
+   }
+
+ double startime = clock();  
+  cudaMemcpy(d, a, se, cudaMemcpyHostToDevice);
+  for(i=0;i<N;i++){
+    oddeven<<<N/1024, 512>>>(d, i);
+  }
+  cudaMemcpy(a, d, se, cudaMemcpyDeviceToHost);
+  printf("\nExecution time : %lf seconds", (clock()-startime)/CLOCKS_PER_SEC);
+  printf("\nOutput: ");
+  for(i=0;i<N;i++){
+    printf("%d ", a[i]);
+  }
+  return 0;
+}
